@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>交通安全研習時數填報系統</title>
+  <style>
+    body { font-family: '微軟正黑體', sans-serif; background: linear-gradient(to bottom, #F7DE98, #F79797); min-height: 100vh; padding: 20px; margin: 0; box-sizing: border-box; }
+    .nav-tabs { display: flex; max-width: 650px; margin: 20px auto 0 auto; background: #EFE6DD; border-radius: 8px 8px 0 0; overflow: hidden; }
+    .tab-btn { flex: 1; padding: 12px; text-align: center; background: #E8DFD5; cursor: pointer; font-weight: bold; color: #665A5A; transition: 0.3s; }
+    .tab-btn.active { background: white; color: #D46A6A; border-bottom: 3px solid #D46A6A; }
+    .container { max-width: 650px; margin: 0 auto; background: white; padding: 30px; border-radius: 0 0 8px 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); box-sizing: border-box; }
+    .page { display: none; }
+    .page.active { display: block; }
+    h2, h3 { text-align: center; color: #4A3F3F; }
+    .form-group { margin-bottom: 20px; }
+    label { display: block; margin-bottom: 8px; font-weight: bold; color: #665A5A; }
+    input[type="text"], input[type="number"], input[type="file"], input[type="password"] { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #DBCBCA; border-radius: 4px; }
+    button { width: 100%; padding: 12px; background-color: #D46A6A; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; font-weight: bold; box-sizing: border-box; }
+    button:disabled { background-color: #DBB8B8; cursor: not-allowed; }
+    .msg { margin-top: 20px; text-align: center; font-weight: bold; }
+    .admin-dashboard { display: none; margin-top: 20px; }
+    .admin-actions { display: flex; gap: 10px; margin-bottom: 20px; }
+    .admin-actions button, .admin-actions a { flex: 1; margin: 0; padding: 10px; font-size: 14px; text-align: center; text-decoration: none; border-radius: 4px; font-weight: bold; box-sizing: border-box; }
+    .btn-add { background-color: #5D8C7A; color: white; border: none; cursor: pointer; }
+    .btn-refresh { background-color: #9C8E8E; color: white; border: none; cursor: pointer; }
+    .btn-folder { background-color: #D46A6A; color: white; border: none; display: flex; align-items: center; justify-content: center; }
+    .progress-wrapper { margin: 20px 0; }
+    .progress-text { text-align: right; font-weight: bold; color: #665A5A; margin-bottom: 5px; }
+    .progress-container { width: 100%; background-color: #EFE6DD; border-radius: 8px; overflow: hidden; height: 22px; }
+    .progress-bar { height: 100%; background-color: #D46A6A; width: 0%; transition: width 0.8s ease-in-out; text-align: center; color: white; font-size: 14px; line-height: 22px; }
+    .list-title { margin-top: 30px; padding: 6px; border-left: 5px solid; font-weight: bold; }
+    .title-success { border-color: #28a745; color: #28a745; }
+    .title-danger { border-color: #dc3545; color: #dc3545; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; background: #fff; }
+    table, th, td { border: 1px solid #EFE6DD; }
+    th, td { padding: 8px; text-align: center; }
+    th { background-color: #FCF9F5; color: #4A3F3F; }
+    .badge-success { background: #e2f0d9; color: #385723; padding: 3px 8px; border-radius: 4px; font-size: 13px; }
+    .badge-danger { background: #fce4d6; color: #c65911; padding: 3px 8px; border-radius: 4px; font-size: 13px; }
+    .table-btn { padding: 5px 10px; font-size: 12px; border-radius: 4px; border: none; color: white; cursor: pointer; display: inline-block; width: auto; margin: 2px;}
+    .btn-edit { background-color: #ECAE4B; }
+    .btn-delete { background-color: #D46A6A; }
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+    .modal-content { background: white; width: 90%; max-width: 400px; padding: 25px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+    .modal-btn-group { display: flex; gap: 10px; margin-top: 15px; }
+    .modal-btn-group button { flex: 1; }
+    .modal-overlay.active-modal { display: flex; animation: fadeIn 0.3s forwards; }
+    .modal-content.pop-animation { animation: popIn 0.3s forwards cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    #alertMessage { margin: 15px 0; color: #555; text-align: center; line-height: 1.5; }
+  </style>
+</head>
+<body>
+
+  <div class="nav-tabs">
+    <div class="tab-btn active" onclick="switchTab('user-page', this)">📄 教師填報</div>
+    <div class="tab-btn" onclick="switchTab('admin-page', this)">🔒 後台管理</div>
+  </div>
+
+  <div class="container">
+    <div id="user-page" class="page active">
+      <h2>交通安全研習時數填報</h2>
+      <div class="form-group">
+        <label for="name">姓名：</label>
+        <input type="text" id="name" placeholder="請輸入您的姓名" required>
+      </div>
+      <div class="form-group">
+        <label for="hours">研習時數：</label>
+        <input type="number" id="hours" min="1" placeholder="請輸入時數 (如：2)" required>
+      </div>
+      <div class="form-group">
+        <label for="file">上傳證明檔案 (PDF/圖片)：</label>
+        <input type="file" id="file" required>
+      </div>
+      <button id="submitBtn" onclick="submitForm()">送出資料</button>
+      <div id="userMessage" class="msg"></div>
+    </div>
+    
+    <div id="admin-page" class="page">
+      <h2>上傳資料管理</h2>
+      <div id="admin-login-box">
+        <div class="form-group">
+          <label for="adminPwd">請輸入管理員密碼：</label>
+          <input type="password" id="adminPwd" placeholder="請輸入密碼">
+        </div>
+        <button id="loginBtn" onclick="loginAdmin()">登入並讀取名單</button>
+        <div id="adminMessage" class="msg"></div>
+      </div>
+      
+      <div id="admin-dashboard" class="admin-dashboard">
+        <div class="admin-actions">
+          <button class="btn-add" onclick="openFormModal('add')">➕ 新增人員</button>
+          <button class="btn-refresh" onclick="loginAdmin()">🔄 重新整理</button>
+          <a href="https://drive.google.com/drive/folders/1AvGP4vfCmTwatP8mU8iei6x-E_dQkVDx" target="_blank" class="btn-folder">📁 查看檔案</a>
+        </div>
+        
+        <div class="progress-wrapper" id="progress-wrapper" style="display: none;">
+          <div class="progress-text" id="progress-text">完成率: 0% (0/0)</div>
+          <div class="progress-container">
+            <div class="progress-bar" id="progress-bar">0%</div>
+          </div>
+        </div>
+        
+        <div class="list-title title-success" id="completed-title">✅ 已完成名單 (滿 4 小時)</div>
+        <div id="completed-container"></div>
+        
+        <div class="list-title title-danger" id="uncompleted-title">❌ 未完成名單 (未滿 4 小時)</div>
+        <div id="uncompleted-container"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="editModal">
+    <div class="modal-content pop-animation">
+      <h3 id="modalTitle">新增人員</h3>
+      <input type="hidden" id="modalAction">
+      <input type="hidden" id="modalOldName">
+      <input type="hidden" id="modalOldHours">
+      
+      <div class="form-group">
+        <label for="modalName">姓名：</label>
+        <input type="text" id="modalName" placeholder="請輸入姓名">
+      </div>
+      <div class="form-group" id="modalHoursGroup">
+        <label for="modalHours">總累計時數：</label>
+        <input type="number" id="modalHours" min="0" placeholder="請輸入時數">
+      </div>
+      
+      <div id="modalMsg" style="color:red; font-size:14px; text-align:center; margin-bottom:10px;"></div>
+      
+      <div class="modal-btn-group">
+        <button onclick="saveAdminData()" id="modalSaveBtn">儲存</button>
+        <button onclick="closeFormModal()" style="background-color: #9C8E8E;">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="customAlertModal">
+    <div class="modal-content pop-animation">
+      <h3 id="alertTitle" style="margin-top: 0;"></h3>
+      <p id="alertMessage"></p>
+      <div class="modal-btn-group" id="alertBtnGroup"></div>
+    </div>
+  </div>
+
+  <script>
+    let API_URL = "";
+
+    // 網頁載入時，讀取 config.json 中的 API 網址
+    window.onload = function() {
+      fetch('config.json')
+        .then(response => response.json())
+        .then(data => { API_URL = data.API_URL; })
+        .catch(err => console.error("無法讀取 config.json 設定檔", err));
+    };
+
+    // 通用的 API 呼叫函式 (取代 google.script.run)
+    function callGAS(payload, onSuccess, onError) {
+      if (!API_URL) {
+        if (onError) onError("API 網址未設定，請確認 config.json 是否載入完成。");
+        return;
+      }
+
+      fetch(API_URL, {
+        method: "POST",
+        // GAS 跨網域時，使用 text/plain 格式送出 JSON 可以避免 CORS preflight 錯誤
+        headers: { "Content-Type": "text/plain;charset=utf-8" }, 
+        body: JSON.stringify(payload)
+      })
+      .then(res => res.json())
+      .then(result => {
+        if (onSuccess) onSuccess(result);
+      })
+      .catch(error => {
+        if (onError) onError("網路連線錯誤：" + error.toString());
+      });
+    }
+
+    // 頁籤切換
+    function switchTab(pageId, btn) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(pageId).classList.add('active');
+      btn.classList.add('active');
+    }
+
+    function showModal(title, message, type, onConfirmCallback = null) {
+      const modal = document.getElementById('customAlertModal');
+      const btnGroup = document.getElementById('alertBtnGroup');
+      document.getElementById('alertTitle').innerText = title;
+      document.getElementById('alertMessage').innerText = message;
+      btnGroup.innerHTML = '';
+      
+      if (type === 'confirm') {
+        const btnOk = document.createElement('button');
+        btnOk.innerText = '確定';
+        btnOk.style.backgroundColor = '#D46A6A';
+        btnOk.onclick = function() { closeCustomModal(); if (onConfirmCallback) onConfirmCallback(); };
+        const btnCancel = document.createElement('button');
+        btnCancel.innerText = '取消';
+        btnCancel.style.backgroundColor = '#9C8E8E';
+        btnCancel.onclick = closeCustomModal;
+        btnGroup.appendChild(btnOk);
+        btnGroup.appendChild(btnCancel);
+      } else {
+        const btnOk = document.createElement('button');
+        btnOk.innerText = '確定';
+        btnOk.style.backgroundColor = (type === 'error') ? '#D46A6A' : '#5D8C7A';
+        btnOk.onclick = closeCustomModal;
+        btnGroup.appendChild(btnOk);
+      }
+      modal.classList.add('active-modal');
+    }
+
+    function closeCustomModal() {
+      document.getElementById('customAlertModal').classList.remove('active-modal');
+    }
+
+    function submitForm() {
+      const name = document.getElementById('name').value.trim();
+      const hours = document.getElementById('hours').value.trim();
+      const fileInput = document.getElementById('file');
+      const msgDiv = document.getElementById('userMessage');
+      const btn = document.getElementById('submitBtn');
+
+      if (!name || !hours || fileInput.files.length === 0) {
+        msgDiv.innerHTML = "<span style='color:red;'>請完整填寫欄位並選擇檔案！</span>"; return;
+      }
+
+      const file = fileInput.files[0];
+      const reader = new FileReader();
+      btn.disabled = true;
+      btn.innerText = "正在處理並上傳檔案...";
+      msgDiv.innerHTML = "";
+
+      reader.onload = function(e) {
+        const data = {
+          name: name,
+          hours: hours,
+          fileName: file.name,
+          mimeType: file.type,
+          fileBase64: e.target.result.split(',')[1]
+        };
+
+        const payload = { action: 'uploadData', data: data };
+
+        callGAS(payload, 
+          function(res) {
+            btn.disabled = false;
+            btn.innerText = "送出資料";
+            if (res.success) {
+              msgDiv.innerHTML = `<span style='color:green;'>${res.message}</span>`;
+              document.getElementById('name').value = '';
+              document.getElementById('hours').value = '';
+              fileInput.value = '';
+            } else {
+              msgDiv.innerHTML = `<span style='color:red;'>${res.message}</span>`;
+            }
+          }, 
+          function(err) {
+            btn.disabled = false;
+            btn.innerText = "送出資料";
+            msgDiv.innerHTML = `<span style='color:red;'>${err}</span>`;
+          }
+        );
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function loginAdmin() {
+      const pwd = document.getElementById('adminPwd').value;
+      const msgDiv = document.getElementById('adminMessage');
+      const loginBtn = document.getElementById('loginBtn');
+      
+      if(!pwd) { msgDiv.innerHTML = "<span style='color:red;'>請輸入密碼！</span>"; return; }
+      
+      loginBtn.disabled = true;
+      loginBtn.innerText = "正在讀取最新名單...";
+      msgDiv.innerHTML = "";
+      
+      const payload = { action: 'getAdminData', password: pwd };
+
+      callGAS(payload, 
+        function(res) {
+          loginBtn.disabled = false;
+          loginBtn.innerText = "登入並讀取名單";
+          if(res.success) {
+            document.getElementById('admin-login-box').style.display = 'none'; 
+            document.getElementById('admin-dashboard').style.display = 'block'; 
+            
+            const total = res.stats.total;
+            const completed = res.stats.completed;
+            const percentage = total === 0 ? 0 : Math.round((completed / total) * 100);
+            
+            document.getElementById('progress-wrapper').style.display = 'block';
+            document.getElementById('progress-text').innerText = `整體完成進度: ${percentage}% (${completed} / ${total} 人)`;
+            document.getElementById('progress-bar').style.width = percentage + '%';
+            document.getElementById('progress-bar').innerText = percentage + '%';
+            document.getElementById('completed-title').innerText = `✅ 已完成名單 (滿 4 小時) - 共 ${res.completed.length} 人`;
+            document.getElementById('uncompleted-title').innerText = `❌ 未完成名單 (未滿 4 小時) - 共 ${res.uncompleted.length} 人`;
+
+            renderTable('completed-container', res.completed, 'badge-success');
+            renderTable('uncompleted-container', res.uncompleted, 'badge-danger');
+          } else {
+            msgDiv.innerHTML = `<span style='color:red;'>${res.message}</span>`;
+          }
+        }, 
+        function(err) {
+          loginBtn.disabled = false;
+          loginBtn.innerText = "登入並讀取名單";
+          msgDiv.innerHTML = `<span style='color:red;'>${err}</span>`;
+        }
+      );
+    }
+
+    function renderTable(containerId, list, badgeClass) {
+      const container = document.getElementById(containerId);
+      if(list.length === 0) { container.innerHTML = "<p style='color:#888; text-align:center;'>目前尚無資料</p>"; return; }
+      
+      let html = "<table><thead><tr><th>姓名</th><th>累計時數</th><th>狀態</th><th>操作</th></tr></thead><tbody>";
+      list.forEach(user => {
+        const displayHours = user.hours !== "" ? `${user.hours} 小時` : `<span style="color:#aaa;">-</span>`;
+        const displayStatus = user.status !== "" ? user.status : "無紀錄";
+        const customBadgeStyle = user.status === "" ? "background:#eee; color:#888;" : "";
+        const finalBadgeClass = user.status !== "" ? badgeClass : "badge-danger";
+
+        html += `<tr>
+          <td>${user.name}</td>
+          <td>${displayHours}</td>
+          <td><span class="${finalBadgeClass}" style="${customBadgeStyle}">${displayStatus}</span></td>
+          <td>
+            <button class="table-btn btn-edit" onclick="openFormModal('edit', '${user.name}', '${user.hours}')">編輯</button>
+            <button class="table-btn btn-delete" onclick="deleteAdminRecord('${user.name}')">刪除</button>
+          </td>
+        </tr>`;
+      });
+      html += "</tbody></table>";
+      container.innerHTML = html;
+    }
+
+    function openFormModal(action, name = '', hours = '') {
+      document.getElementById('editModal').classList.add('active-modal');
+      document.getElementById('modalAction').value = action;
+      document.getElementById('modalOldName').value = name;
+      document.getElementById('modalOldHours').value = hours;
+      document.getElementById('modalName').value = name;
+      document.getElementById('modalHours').value = hours;
+      document.getElementById('modalMsg').innerText = '';
+      document.getElementById('modalTitle').innerText = action === 'add' ? '➕ 新增人員' : '✏️ 編輯人員';
+
+      if (action === 'add') document.getElementById('modalHoursGroup').style.display = 'none';
+      else document.getElementById('modalHoursGroup').style.display = 'block';
+    }
+
+    function closeFormModal() { document.getElementById('editModal').classList.remove('active-modal'); }
+
+    function saveAdminData() {
+      const pwd = document.getElementById('adminPwd').value;
+      const action = document.getElementById('modalAction').value;
+      const oldName = document.getElementById('modalOldName').value;
+      const oldHours = document.getElementById('modalOldHours').value;
+      const newName = document.getElementById('modalName').value.trim();
+      let hours = document.getElementById('modalHours').value;
+      
+      if (action === 'add') hours = 0;
+      if (!newName || hours === '') { document.getElementById('modalMsg').innerText = "請完整填寫資料！"; return; }
+      
+      const btn = document.getElementById('modalSaveBtn');
+      btn.disabled = true;
+      btn.innerText = "儲存中...";
+      
+      const payload = {
+        action: 'manageAdminRecord',
+        password: pwd,
+        actionType: action,
+        payload: { oldName: oldName, oldHours: oldHours, name: newName, hours: hours }
+      };
+
+      callGAS(payload, 
+        function(res) {
+          btn.disabled = false;
+          btn.innerText = "儲存";
+          if (res.success) {
+            closeFormModal();
+            loginAdmin(); 
+          } else {
+            document.getElementById('modalMsg').innerText = res.message;
+          }
+        }, 
+        function(err) {
+          btn.disabled = false;
+          btn.innerText = "儲存";
+          document.getElementById('modalMsg').innerText = err;
+        }
+      );
+    }
+
+    function deleteAdminRecord(name) {
+      showModal("刪除確認", `警告：確定要刪除「${name}」的所有紀錄嗎？\n刪除後無法復原。`, "confirm", function() {
+        const pwd = document.getElementById('adminPwd').value;
+        const payload = {
+          action: 'manageAdminRecord',
+          password: pwd,
+          actionType: 'delete',
+          payload: { name: name }
+        };
+
+        callGAS(payload, 
+          function(res) { if (res.success) loginAdmin(); else showModal("錯誤", res.message, "error"); }, 
+          function(err) { showModal("系統錯誤", err, "error"); }
+        );
+      });
+    }
+  </script>
+</body>
+</html>
